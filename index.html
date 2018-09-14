@@ -89,10 +89,11 @@ Matthieubosquet@gmail.com
         <label for="name">Name:</label> <input id="name" autocomplete="off">
         <input id="match" type="button" onclick="loadParam()" value="Match!">
     </p>
-    <h2 id="score" style="visibility: hidden;"></h2>
-    <hr>
-    <div id="results">
-        <div id="details" style="visibility: hidden;">
+    <h2 id="score" style="display: none;"></h2>
+    <p id="twitter" style="display: none;"></p>
+    <div id="results" style="display: none;">
+        <hr>
+        <div id="details">
             <p><span id="percent" style="display: flex; flex-grow: 1;"><span id="lords" style="background-color:#A2070F; padding: 20px 0; width:50%;">50% lords</span><span id="commons" style="background-color: #016131; padding: 20px 0; width: 50%;">50 % commons</span></span></p>
             <table>
                 <thead>
@@ -102,6 +103,88 @@ Matthieubosquet@gmail.com
                 </tbody>
             </table>
         </div>
+    </div>
+    <div id="synopsis">
+        <hr>
+        <h2>About</h2>
+        <p>
+            The UK Parliament <a href="https://twitter.com/UKParliData">Data & Search Team</a> opened a <a href="https://api.parliament.uk/sparql">SPARQL endpoint</a> to the public!
+        </p>
+        <p>
+            SPARQL is a powerful and versatile query language that should enable anyone to build open data apps!
+        </p>
+        <p>
+            Just <a href="https://api.parliament.uk/webvowl/">look at our data model</a> or <a href="https://www.w3.org/TR/sparql11-overview/">learn about SPARQL</a>.
+        </p>
+        <h2>Limitations</h2>
+        <p>
+            Processing power costs money! So even though <a href="https://pds.blog.parliament.uk/2017/12/15/performance-testing-a-graph-database/">we have good performance metrics</a>...
+        </p>
+        <p>
+            We timeout queries after 5 seconds of processing.
+        </p>
+        <p>
+            You can also run 10 concurrent queries per IP per second.
+        </p>
+        <h2>Nota bene</h2>
+        <p>
+            You will get partial results if your query returns to many triples, so paginate.
+        </p>
+        <p>
+            You will get no result if your query is too complex but we're looking at containerising our graph.
+        </p>
+        <p>
+            We also have an <a href="https://pds.blog.parliament.uk/2018/01/24/accessing-semantic-data-with-odata-web-interface/">OData endpoint</a> for those who don't need the expressivity of SPARQL. 
+        </p>
+        <h2>Synopsis</h2>
+        <p>
+            <strong>6th of September 2018</strong>
+        </p>
+        <p>
+            <a href="https://twitter.com/northernjamie">Jamie White</a> asked for some relatively complex data <a href="https://twitter.com/northernjamie/status/1037822004022452235">in a tweet</a>.
+        </p>
+        <p>
+            It was actually quite easy to <a href="https://gist.github.com/matthieubosquet/916581ced7533d4824cf249b057ed821">express his question in SPARQL</a>.
+        </p>
+        <p>
+            We are confident <a href="https://medium.com/@langsamu/api-parliament-uk-7b87597019a4">in our infrastructure</a>.
+        </p>
+        <p>
+            But we wanted to put some safety in place so we took time to limit and timeout requests.
+        </p>
+        <p>
+            <strong>12th of September 2018</strong>
+        </p>
+        <p>
+            I <a href="https://twitter.com/cognithive/status/1039784219592073216">disclosed</a> our <a href="https://twitter.com/langsamu/status/1039950343088615425">public SPARQL endpoint</a> to Jamie White <a href="https://twitter.com/northernjamie/status/1040348235678797825">who was happy</a>.
+        </p>
+        <p>
+            <strong>13th of September 2018</strong>
+        </p>
+        <p>
+            Phil Gorman <a href="https://twitter.com/philbgorman/status/1040213868520321026">tweeted about using our SPARQL endpoint</a>.
+        </p>
+        <p>
+            He was searching for current MPs with his Name in their name.
+        </p>
+        <p>
+            <strong>Around midnight</strong>
+        </p>
+        <p>
+            I decided to <a href="https://twitter.com/cognithive/status/1040358111738032128">celebrate</a> this first known use of our SPARQL interface.
+        </p>
+        <p>
+            And spent the night coding this little app.
+        </p>
+        <p>
+            I hope you like it and get inspired to build cool things using our data.
+        </p>
+        <p>
+            <strong>Happy Coding!</strong>
+        </p>
+        <p>
+            <a href="https://twitter.com/cognithive">Matthieu</a>
+        </p>
     </div>
 
     <script>
@@ -190,16 +273,44 @@ ORDER BY ?personGivenName ?personFamilyName
             });
             if (matches.length == 0) {
                 var score = document.getElementById("score");
-                score.style.visibility = "visible";
+                score.style.display = "block";
+                score.innerHTML = "🤔 Can you believe no member has \"" + name.charAt(0).toUpperCase() + name.slice(1) + "\" in their name? ✨";
                 return;
             }
             displayResults(matches);
             displayPercent(matches);
             var score = document.getElementById("score");
-            var details = document.getElementById("details");
-            score.textContent = name.charAt(0).toUpperCase() + name.slice(1) + " scores " + matches.length;
-            score.style.visibility = "visible";
-            details.style.visibility = "visible";
+            var results = document.getElementById("results");
+            var twitter = document.getElementById("twitter");
+            var tweet = "I scored " + matches.length + " with \"" + name + "\" on MP Names https://mp-names.cognithive.com/?name=" + name + " #OpenData @UKParliament";
+            score.innerHTML = "👍 " + name.charAt(0).toUpperCase() + name.slice(1) + " scores " + matches.length + " 🎉";
+            var tweeterLink = document.createElement("a");
+            tweeterLink.href = "http://twitter.com/home?status=" + encodeURIComponent(tweet);
+            tweeterLink.target = "_blank";
+            tweeterLink.innerHTML = `
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+    viewBox="0 0 400 400" style="enable-background:new 0 0 400 400; width: 32px; display: block; margin: 8px auto;" xml:space="preserve">
+    <style type="text/css">
+        .st0{fill:#1DA1F2;}
+        .st1{fill:#FFFFFF;}
+    </style>
+    <g id="Dark_Blue">
+        <circle class="st0" cx="200" cy="200" r="200"/>
+    </g>
+    <g id="Logo__x2014__FIXED">
+        <path class="st1" d="M163.4,305.5c88.7,0,137.2-73.5,137.2-137.2c0-2.1,0-4.2-0.1-6.2c9.4-6.8,17.6-15.3,24.1-25
+            c-8.6,3.8-17.9,6.4-27.7,7.6c10-6,17.6-15.4,21.2-26.7c-9.3,5.5-19.6,9.5-30.6,11.7c-8.8-9.4-21.3-15.2-35.2-15.2
+            c-26.6,0-48.2,21.6-48.2,48.2c0,3.8,0.4,7.5,1.3,11c-40.1-2-75.6-21.2-99.4-50.4c-4.1,7.1-6.5,15.4-6.5,24.2
+            c0,16.7,8.5,31.5,21.5,40.1c-7.9-0.2-15.3-2.4-21.8-6c0,0.2,0,0.4,0,0.6c0,23.4,16.6,42.8,38.7,47.3c-4,1.1-8.3,1.7-12.7,1.7
+            c-3.1,0-6.1-0.3-9.1-0.9c6.1,19.2,23.9,33.1,45,33.5c-16.5,12.9-37.3,20.6-59.9,20.6c-3.9,0-7.7-0.2-11.5-0.7
+            C110.8,297.5,136.2,305.5,163.4,305.5"/>
+    </g>
+</svg>
+Tweet about it!`;
+            twitter.appendChild(tweeterLink);
+            score.style.display = "block";
+            twitter.style.display = "block";
+            results.style.display = "block";
         }
 
         function displayResults(matches) {
