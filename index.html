@@ -282,7 +282,7 @@ ORDER BY ?personGivenName ?personFamilyName
             var score = document.getElementById("score");
             var results = document.getElementById("results");
             var twitter = document.getElementById("twitter");
-            var tweet = "I scored " + matches.length + " with \"" + name + "\" on MP Names https://mp-names.cognithive.com/?name=" + name + " #OpenData @UKParliament";
+            var tweet = name[0].toUpperCase() + name.substring(1).toLowerCase() + " scores " + matches.length + " on the #MPNames app #OpenData @UKParliament https://mp-names.cognithive.com/?name=" + name;
             score.innerHTML = "👍 " + name.charAt(0).toUpperCase() + name.slice(1) + " scores " + matches.length + " 🎉";
             var tweeterLink = document.createElement("a");
             tweeterLink.href = "http://twitter.com/home?status=" + encodeURIComponent(tweet);
