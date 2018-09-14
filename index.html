@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3E4038">
+    <link rel="icon" sizes="192x192" href="/favicon.png">
+    <title>Current MP Names Matcher</title>
+    <meta name="author" content="Matthieu Bosquet">
+    <meta name="description" content="Find out how many UK Parliament members have the first 4 letters of your name in their given or family name!">
+    <style>
+        body {
+            margin: 0;
+        }
+        h1 {
+            background: black;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        hr {
+            margin-bottom: -1px;
+        }
+        p {
+            text-align: center;
+        }
+        #search {
+            font-size: 20px;
+        }
+        #search input {
+            font-size: 20px;
+            min-height: 24px;
+        }
+        #details p {
+            display: flex;
+            font-family: monospace;
+            font-weight: bold;
+            margin: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th {
+            height: 50px;
+            background-color: black;
+            color: white;
+            text-align: left;
+            padding-left: 20px;
+        }
+        td {
+            padding: 20px;
+            vertical-align: top;
+        }
+    </style>
+</head>
+<!--
+                 .__
+__  _  __  ____  |  |    ____    ____    _____    ____
+\ \/ \/ /_/ __ \ |  |  _/ ___\  /  _ \  /     \ _/ __ \
+ \     / \  ___/ |  |__\  \___ (  <_> )|  Y Y  \\  ___/
+  \/\_/   \___  >|____/ \___  > \____/ |__|_|  / \___  >
+              \/            \/               \/      \/
+
+... To the MP name matcher!
+Since you're looking at this, you might want to have a look at the UK Parliament public SPARQL endpoint!
+https://api.parliament.uk/sparql
+You don't know SPARQL?
+Check it out! It's a very cool query language for the semantic web.
+https://www.w3.org/TR/sparql11-query/
+You need to check out our model to write queries?
+Check out our WebVOWL endpoint!
+https://api.parliament.uk/webvowl/
+
+Happy coding!
+
+Matthieubosquet@gmail.com
+
+-->
+<body>
+    <h1>Current UK Parliament members name match!</h1>
+
+    <p id="search">
+        <label for="name">Name:</label> <input id="name" autocomplete="off">
+        <input id="match" type="button" onclick="loadParam()" value="Match!">
+    </p>
+    <h2 id="score" style="visibility: hidden;"></h2>
+    <hr>
+    <div id="results">
+        <div id="details" style="visibility: hidden;">
+            <p><span id="percent" style="display: flex; flex-grow: 1;"><span id="lords" style="background-color:#A2070F; padding: 20px 0; width:50%;">50% lords</span><span id="commons" style="background-color: #016131; padding: 20px 0; width: 50%;">50 % commons</span></span></p>
+            <table>
+                <thead>
+                    <th>Name</th><th>Constituency</th><th>House</th><th>Image</th>
+                </thead>
+                <tbody id="mps">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    // URL parameters
+    var url_string = window.location.href;
+    var url = new URL(url_string);
+    var name = url.searchParams.get("name");
+
+    // The SPARQL query this is all based on
+    var sparqlQuery = `
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <https://id.parliament.uk/schema/>
+
+SELECT ?member ?personGivenName ?personFamilyName ?constituencyGroup ?constituencyGroupName ?house ?houseLabel ?memberImage ?startDate
+WHERE {
+    ?houseSeat 
+        :houseSeatHasSeatIncumbency ?seatIncumbency ;
+        :houseSeatHasHouse ?house .
+
+    ?house 
+        rdfs:label ?houseLabel .
+
+    ?seatIncumbency
+        :parliamentaryIncumbencyHasMember ?member .
+
+    FILTER NOT EXISTS { ?seatIncumbency a :PastParliamentaryIncumbency . }
+
+    ?member
+        :personGivenName ?personGivenName ;
+        :personFamilyName ?personFamilyName .
+        
+    OPTIONAL { ?member :startDate ?startDate . }
+
+    OPTIONAL { ?member :memberHasMemberImage ?memberImage . }
+
+    OPTIONAL {
+        ?constituencyGroup 
+            a :ConstituencyGroup ;
+            :constituencyGroupName ?constituencyGroupName ;
+            :constituencyGroupHasHouseSeat ?houseSeat .
+    }
+
+    FILTER (regex(?personGivenName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}") || regex(?personFamilyName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}"))
+}
+ORDER BY ?personGivenName ?personFamilyName
+`;
+    
+    // Listen to name submit
+    var input = document.getElementById("name");
+    input.addEventListener("keyup", function(event) {
+        event.preventDefault();
+        if (event.keyCode === 13) {
+            document.getElementById("match").click();
+        }
+    });
+
+    function loadParam() {
+        window.location.href = window.location.origin + window.location.pathname + "?name=" + document.getElementById('name').value;
+    }
+
+    // Match current members names
+    function matchWithCurrentMemberNames(name) {
+        var parliamentSparqlEndpoint = "https://api.parliament.uk/sparql"
+    
+        fetch(parliamentSparqlEndpoint, {
+            method: 'POST',
+            body: sparqlQuery, // data can be `string` or {object}!
+            headers:{
+                'Content-Type': 'application/sparql-query'
+            }
+        })
+        .then(response => response.text())
+        .then(parse)
+        .catch(error => console.error('Error:', error));
+
+        function parse(results) {
+            let data = results.split('\n').map(result => result.split(','));
+            // Remove extra row
+            // TODO: find out where that row comes from.
+            data.pop();
+            let predicate = data.shift();
+            let matches = data.map(object => {
+                mp = {};
+                predicate.map((h,i) => mp[predicate[i]] = object[i]);
+                return mp;
+            });
+            if (matches.length == 0) {
+                var score = document.getElementById("score");
+                score.style.visibility = "visible";
+                return;
+            }
+            displayResults(matches);
+            displayPercent(matches);
+            var score = document.getElementById("score");
+            var details = document.getElementById("details");
+            score.textContent = name.charAt(0).toUpperCase() + name.slice(1) + " scores " + matches.length;
+            score.style.visibility = "visible";
+            details.style.visibility = "visible";
+        }
+
+        function displayResults(matches) {
+            var mptableBody = document.getElementById("mps");
+            mptableBody.innerHTML = "";
+
+            matches.forEach(createRow);
+
+            function createRow(mp) {
+                var row = mptableBody.insertRow();
+
+                // Insert MP name with API link
+                var mpLink = document.createElement("a");
+                mpLink.innerText = mp.personGivenName + " " + mp.personFamilyName;
+                mpLink.href = mp.member;
+                row.insertCell().appendChild(mpLink);
+
+                // Insert constituency group name
+                var constituencyLink = document.createElement("a");
+                constituencyLink.innerText = mp.constituencyGroupName;
+                constituencyLink.href = mp.constituencyGroup;
+                row.insertCell().appendChild(constituencyLink);
+
+                // Insert MP house
+                var houseLink = document.createElement("a");
+                houseLink.innerText = mp.houseLabel;
+                houseLink.href = mp.house;
+                row.insertCell().appendChild(houseLink);
+
+                // Insert MP image
+                var cell = row.insertCell();
+                if (mp.memberImage) {
+                    var img = document.createElement("img");
+                    img.src = "https://api.parliament.uk/photo/" + mp.memberImage.substring('https://id.parliament.uk/'.length) + ".jpeg?crop=MCU_3:2&width=260&quality=80";
+                    cell.appendChild(img);
+                }
+            }
+        }
+
+        function displayPercent(matches) {
+            var lords = document.getElementById("lords");
+            var commons = document.getElementById("commons");
+
+            // Percentage of commons in matches
+            var percent =  countPercent("House of Commons");
+            percent = Math.round(percent / matches.length * 100);
+            commons.style.width = percent + "%";
+            if (percent == 0) {
+                commons.innerText = "";
+            } else {
+                commons.innerText = percent + "% commons";
+            }
+
+            // Percentage of lords in matches
+            percent = 100 - percent;
+            lords.style.width = percent + "%";
+            if (percent == 0) {
+                lords.innerText = "";
+            } else {
+                lords.innerText = percent + "% lords";
+            }
+
+            function countPercent(house) {
+                return matches.reduce(function (accumulator, currentValue, currentIndex, array) {
+                    return currentValue.houseLabel == house ? accumulator + 1 : accumulator
+                }, 0);
+            } 
+        }
+    }
+
+    if (name !== "null") {
+        matchWithCurrentMemberNames(name);
+    }
+    </script>
+</body>
+</html>
