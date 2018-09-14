@@ -10,9 +10,18 @@
     <meta name="author" content="Matthieu Bosquet">
     <meta name="description" content="Find out how many UK Parliament members have your name in their given or family name!">
     <style>
-        body {
+        html { font-size: 16px; }
+        @media (min-width: 1024px) { html { font-size: 20px; } img { width: 260px !important; } }
+        body { 
+            background-color: #f7fbfd;
+            color: #2d2f33;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; 
+            font-size: 1rem;
             margin: 0;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         }
+        body > div { margin: 0 auto; max-width: 38rem; }
         h1 {
             background: black;
             color: white;
@@ -20,14 +29,8 @@
             padding: 20px;
             text-align: center;
         }
-        h2 {
-            text-align: center;
-        }
         hr {
             margin-bottom: -1px;
-        }
-        p {
-            text-align: center;
         }
         #search {
             font-size: 20px;
@@ -35,6 +38,9 @@
         #search input {
             font-size: 20px;
             min-height: 24px;
+        }
+        #twitter, #score, #search {
+            text-align: center;
         }
         #details p {
             display: flex;
@@ -54,8 +60,16 @@
             padding-left: 20px;
         }
         td {
-            padding: 20px;
+            border-bottom: 1px solid;
+            padding: 0px;
             vertical-align: top;
+        }
+        td a {
+            display: block;
+            padding: 0.8rem;
+        }
+        img {
+            width: 180px;
         }
     </style>
 </head>
@@ -85,106 +99,108 @@ Matthieubosquet@gmail.com
 <body>
     <h1>Current UK Parliament members name match!</h1>
 
-    <p id="search">
-        <label for="name">Name:</label> <input id="name" autocomplete="off">
-        <input id="match" type="button" onclick="loadParam()" value="Match!">
-    </p>
-    <h2 id="score" style="display: none;"></h2>
-    <p id="twitter" style="display: none;"></p>
-    <div id="results" style="display: none;">
-        <hr>
-        <div id="details">
-            <p><span id="percent" style="display: flex; flex-grow: 1;"><span id="lords" style="background-color:#A2070F; padding: 20px 0; width:50%;">50% lords</span><span id="commons" style="background-color: #016131; padding: 20px 0; width: 50%;">50 % commons</span></span></p>
-            <table>
-                <thead>
-                    <th>Name</th><th>Constituency</th><th>House</th><th>Image</th>
-                </thead>
-                <tbody id="mps">
-                </tbody>
-            </table>
+    <div>
+        <p id="search">
+            <label for="name">Name:</label> <input id="name" autocomplete="off">
+            <input id="match" type="button" onclick="loadParam()" value="Match!">
+        </p>
+        <h2 id="score" style="display: none;"></h2>
+        <p id="twitter" style="display: none;"></p>
+        <div id="results" style="display: none;">
+            <hr>
+            <div id="details">
+                <p><span id="percent" style="display: flex; flex-grow: 1;"><span id="lords" style="background-color:#A2070F; padding: 20px 0; width:50%;">50% lords</span><span id="commons" style="background-color: #016131; padding: 20px 0; width: 50%;">50 % commons</span></span></p>
+                <table>
+                    <thead>
+                        <th>MP</th><th>Constituency</th><th>House</th>
+                    </thead>
+                    <tbody id="mps">
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-    <div id="synopsis">
-        <hr>
-        <h2>About</h2>
-        <p>
-            The UK Parliament <a href="https://twitter.com/UKParliData">Data & Search Team</a> opened a <a href="https://api.parliament.uk/sparql">SPARQL endpoint</a> to the public!
-        </p>
-        <p>
-            SPARQL is a powerful and versatile query language that should enable anyone to build open data apps!
-        </p>
-        <p>
-            Just <a href="https://api.parliament.uk/webvowl/">look at our data model</a> or <a href="https://www.w3.org/TR/sparql11-overview/">learn about SPARQL</a>.
-        </p>
-        <h2>Limitations</h2>
-        <p>
-            Processing power costs money! So even though <a href="https://pds.blog.parliament.uk/2017/12/15/performance-testing-a-graph-database/">we have good performance metrics</a>...
-        </p>
-        <p>
-            We timeout queries after 5 seconds of processing.
-        </p>
-        <p>
-            You can also run 10 concurrent queries per IP per second.
-        </p>
-        <h2>Nota bene</h2>
-        <p>
-            You will get partial results if your query returns too many triples, so paginate.
-        </p>
-        <p>
-            You will get no result if your query is too complex but we're looking at containerising our graph.
-        </p>
-        <p>
-            We also have an <a href="https://pds.blog.parliament.uk/2018/01/24/accessing-semantic-data-with-odata-web-interface/">OData endpoint</a> for those who don't need the expressivity of SPARQL. 
-        </p>
-        <h2>Synopsis</h2>
-        <p>
-            <strong>6th of September 2018</strong>
-        </p>
-        <p>
-            <a href="https://twitter.com/northernjamie">Jamie White</a> asked for some relatively complex data <a href="https://twitter.com/northernjamie/status/1037822004022452235">in a tweet</a>.
-        </p>
-        <p>
-            It was actually quite easy to <a href="https://gist.github.com/matthieubosquet/916581ced7533d4824cf249b057ed821">express his question in SPARQL</a>.
-        </p>
-        <p>
-            We are confident <a href="https://medium.com/@langsamu/api-parliament-uk-7b87597019a4">in our infrastructure</a>.
-        </p>
-        <p>
-            But we wanted to put some safety in place so we took time to limit and timeout requests.
-        </p>
-        <p>
-            <strong>12th of September 2018</strong>
-        </p>
-        <p>
-            I <a href="https://twitter.com/cognithive/status/1039784219592073216">disclosed</a> our <a href="https://twitter.com/langsamu/status/1039950343088615425">public SPARQL endpoint</a> to Jamie White <a href="https://twitter.com/northernjamie/status/1040348235678797825">who was happy</a>.
-        </p>
-        <p>
-            <strong>13th of September 2018</strong>
-        </p>
-        <p>
-            Phil Gorman <a href="https://twitter.com/philbgorman/status/1040213868520321026">tweeted about using our SPARQL endpoint</a>.
-        </p>
-        <p>
-            He was searching for current MPs with his Name in their name.
-        </p>
-        <p>
-            <strong>Around midnight</strong>
-        </p>
-        <p>
-            I decided to <a href="https://twitter.com/cognithive/status/1040358111738032128">celebrate</a> this first known public use of our SPARQL interface.
-        </p>
-        <p>
-            And spent the night coding this little app.
-        </p>
-        <p>
-            I hope you like it and <a href="https://github.com/matthieubosquet/mp-names">get inspired</a> to build cool things using our data.
-        </p>
-        <p>
-            <strong>Happy Coding!</strong>
-        </p>
-        <p>
-            <a href="https://twitter.com/cognithive">Matthieu</a>
-        </p>
+        <div id="synopsis">
+            <hr>
+            <h2>About</h2>
+            <p>
+                The UK Parliament <a href="https://twitter.com/UKParliData">Data & Search Team</a> opened a <a href="https://api.parliament.uk/sparql">SPARQL endpoint</a> to the public!
+            </p>
+            <p>
+                SPARQL is a powerful and versatile query language that should enable anyone to build open data apps!
+            </p>
+            <p>
+                Just <a href="https://api.parliament.uk/webvowl/">look at our data model</a> or <a href="https://www.w3.org/TR/sparql11-overview/">learn about SPARQL</a>.
+            </p>
+            <h2>Limitations</h2>
+            <p>
+                Processing power costs money! So even though <a href="https://pds.blog.parliament.uk/2017/12/15/performance-testing-a-graph-database/">we have good performance metrics</a>...
+            </p>
+            <p>
+                We timeout queries after 5 seconds of processing.
+            </p>
+            <p>
+                You can also run 10 concurrent queries per IP per second.
+            </p>
+            <h2>Nota bene</h2>
+            <p>
+                You will get partial results if your query returns too many triples, so paginate.
+            </p>
+            <p>
+                You will get no result if your query is too complex but we're looking at containerising our graph.
+            </p>
+            <p>
+                We also have an <a href="https://pds.blog.parliament.uk/2018/01/24/accessing-semantic-data-with-odata-web-interface/">OData endpoint</a> for those who don't need the expressivity of SPARQL. 
+            </p>
+            <h2>Synopsis</h2>
+            <p>
+                <strong>6th of September 2018</strong>
+            </p>
+            <p>
+                <a href="https://twitter.com/northernjamie">Jamie White</a> asked for some relatively complex data <a href="https://twitter.com/northernjamie/status/1037822004022452235">in a tweet</a>.
+            </p>
+            <p>
+                It was actually quite easy to <a href="https://gist.github.com/matthieubosquet/916581ced7533d4824cf249b057ed821">express his question in SPARQL</a>.
+            </p>
+            <p>
+                We are confident <a href="https://medium.com/@langsamu/api-parliament-uk-7b87597019a4">in our infrastructure</a>.
+            </p>
+            <p>
+                But we wanted to put some safety in place so we took time to limit and timeout requests.
+            </p>
+            <p>
+                <strong>12th of September 2018</strong>
+            </p>
+            <p>
+                I <a href="https://twitter.com/cognithive/status/1039784219592073216">disclosed</a> our <a href="https://twitter.com/langsamu/status/1039950343088615425">public SPARQL endpoint</a> to Jamie White <a href="https://twitter.com/northernjamie/status/1040348235678797825">who was happy</a>.
+            </p>
+            <p>
+                <strong>13th of September 2018</strong>
+            </p>
+            <p>
+                Phil Gorman <a href="https://twitter.com/philbgorman/status/1040213868520321026">tweeted about using our SPARQL endpoint</a>.
+            </p>
+            <p>
+                He was searching for current MPs with his Name in their name.
+            </p>
+            <p>
+                <strong>Around midnight</strong>
+            </p>
+            <p>
+                I decided to <a href="https://twitter.com/cognithive/status/1040358111738032128">celebrate</a> this first known public use of our SPARQL interface.
+            </p>
+            <p>
+                And spent the night coding this little app.
+            </p>
+            <p>
+                I hope you like it and <a href="https://github.com/matthieubosquet/mp-names">get inspired</a> to build cool things using our data.
+            </p>
+            <p>
+                <strong>Happy Coding!</strong>
+            </p>
+            <p>
+                <a href="https://twitter.com/cognithive">Matthieu</a>
+            </p>
+        </div>
     </div>
 
     <script>
@@ -198,7 +214,7 @@ Matthieubosquet@gmail.com
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX : <https://id.parliament.uk/schema/>
 
-SELECT ?member ?personGivenName ?personFamilyName ?constituencyGroup ?constituencyGroupName ?house ?houseLabel ?memberImage ?startDate
+SELECT ?member ?personGivenName ?personFamilyName ?constituencyGroup ?constituencyName ?house ?houseLabel ?memberImage ?startDate
 WHERE {
     ?houseSeat 
         :houseSeatHasSeatIncumbency ?seatIncumbency ;
@@ -225,11 +241,12 @@ WHERE {
             a :ConstituencyGroup ;
             :constituencyGroupName ?constituencyGroupName ;
             :constituencyGroupHasHouseSeat ?houseSeat .
+        BIND(REPLACE(STR(?constituencyGroupName),",","") AS ?constituencyName)
     }
 
     FILTER (regex(?personGivenName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}") || regex(?personFamilyName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}"))
 }
-ORDER BY ?personGivenName ?personFamilyName
+ORDER BY ASC(?personGivenName)
 `;
     
     // Listen to name submit
@@ -326,11 +343,17 @@ Tweet about it!`;
                 var mpLink = document.createElement("a");
                 mpLink.innerText = mp.personGivenName + " " + mp.personFamilyName;
                 mpLink.href = mp.member;
-                row.insertCell().appendChild(mpLink);
+                var mpCell = row.insertCell();
+                mpCell.appendChild(mpLink);
+                if (mp.memberImage) {
+                    var img = document.createElement("img");
+                    img.src = "https://api.parliament.uk/photo/" + mp.memberImage.substring('https://id.parliament.uk/'.length) + ".jpeg?crop=MCU_3:2&width=260&quality=80";
+                    mpCell.appendChild(img);
+                }
 
                 // Insert constituency group name
                 var constituencyLink = document.createElement("a");
-                constituencyLink.innerText = mp.constituencyGroupName;
+                constituencyLink.innerText = mp.constituencyName;
                 constituencyLink.href = mp.constituencyGroup;
                 row.insertCell().appendChild(constituencyLink);
 
@@ -339,14 +362,6 @@ Tweet about it!`;
                 houseLink.innerText = mp.houseLabel;
                 houseLink.href = mp.house;
                 row.insertCell().appendChild(houseLink);
-
-                // Insert MP image
-                var cell = row.insertCell();
-                if (mp.memberImage) {
-                    var img = document.createElement("img");
-                    img.src = "https://api.parliament.uk/photo/" + mp.memberImage.substring('https://id.parliament.uk/'.length) + ".jpeg?crop=MCU_3:2&width=260&quality=80";
-                    cell.appendChild(img);
-                }
             }
         }
 
