@@ -214,7 +214,7 @@ Matthieubosquet@gmail.com
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX : <https://id.parliament.uk/schema/>
 
-SELECT ?member ?personGivenName ?personFamilyName ?constituencyGroup ?constituencyName ?house ?houseLabel ?memberImage ?startDate
+SELECT ?member ?personGivenName ?personFamilyName ?personOtherNames ?constituencyGroup ?constituencyName ?house ?houseLabel ?memberImage ?startDate
 WHERE {
     ?houseSeat 
         :houseSeatHasSeatIncumbency ?seatIncumbency ;
@@ -230,8 +230,11 @@ WHERE {
 
     ?member
         :personGivenName ?personGivenName ;
-        :personFamilyName ?personFamilyName .
+        :personFamilyName ?personFamilyName ;
+        :name ?personName.
         
+    OPTIONAL { ?member :personOtherNames ?personOtherNames . }
+
     OPTIONAL { ?member :startDate ?startDate . }
 
     OPTIONAL { ?member :memberHasMemberImage ?memberImage . }
@@ -244,7 +247,7 @@ WHERE {
         BIND(REPLACE(STR(?constituencyGroupName),",","") AS ?constituencyName)
     }
 
-    FILTER (regex(?personGivenName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}") || regex(?personFamilyName, "[${name[0].toUpperCase()}${name[0].toLowerCase()}]${name.substring(1).toLowerCase()}"))
+    FILTER (regex(?personName, ?name, "i"))
 }
 ORDER BY ASC(?personGivenName)
 `;
@@ -264,7 +267,7 @@ ORDER BY ASC(?personGivenName)
 
     // Match current members names
     function matchWithCurrentMemberNames(name) {
-        var parliamentSparqlEndpoint = "https://api.parliament.uk/sparql"
+        var parliamentSparqlEndpoint = "https://api.parliament.uk/sparql?$name=\"" + name.replace("\"", "/\"") + "\"";
     
         fetch(parliamentSparqlEndpoint, {
             method: 'POST',
@@ -341,7 +344,7 @@ Tweet about it!`;
 
                 // Insert MP name with API link
                 var mpLink = document.createElement("a");
-                mpLink.innerText = mp.personGivenName + " " + mp.personFamilyName;
+                mpLink.innerText = mp.personGivenName + " " + mp.personOtherNames + " " + mp.personFamilyName;
                 mpLink.href = mp.member;
                 var mpCell = row.insertCell();
                 mpCell.appendChild(mpLink);
