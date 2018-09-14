@@ -213,32 +213,22 @@ Matthieubosquet@gmail.com
     var sparqlQuery = `
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX : <https://id.parliament.uk/schema/>
-
-SELECT ?member ?personGivenName ?personFamilyName ?personOtherNames ?constituencyGroup ?constituencyName ?house ?houseLabel ?memberImage ?startDate
+SELECT ?member ?personGivenName ?personOtherNames ?personFamilyName ?constituencyGroup ?constituencyName ?house ?houseLabel ?memberImage
 WHERE {
-    ?houseSeat 
-        :houseSeatHasSeatIncumbency ?seatIncumbency ;
-        :houseSeatHasHouse ?house .
-
     ?house 
-        rdfs:label ?houseLabel .
-
+        rdfs:label ?houseLabel ;
+  		:houseHasHouseSeat ?houseSeat .
+    ?houseSeat 
+        :houseSeatHasSeatIncumbency ?seatIncumbency .
     ?seatIncumbency
         :parliamentaryIncumbencyHasMember ?member .
-
     FILTER NOT EXISTS { ?seatIncumbency a :PastParliamentaryIncumbency . }
-
     ?member
         :personGivenName ?personGivenName ;
-        :personFamilyName ?personFamilyName ;
-        :name ?personName.
-        
+        :personFamilyName ?personFamilyName .
+
     OPTIONAL { ?member :personOtherNames ?personOtherNames . }
-
-    OPTIONAL { ?member :startDate ?startDate . }
-
     OPTIONAL { ?member :memberHasMemberImage ?memberImage . }
-
     OPTIONAL {
         ?constituencyGroup 
             a :ConstituencyGroup ;
@@ -246,8 +236,8 @@ WHERE {
             :constituencyGroupHasHouseSeat ?houseSeat .
         BIND(REPLACE(STR(?constituencyGroupName),",","") AS ?constituencyName)
     }
-
-    FILTER (regex(?personName, ?name, "i"))
+    BIND(CONCAT(?personGivenName, " ", ?personFamilyName, " ", ?personOtherNames, " ", ?personFamilyName, " ", ?personGivenName, " ", ?personOtherNames) AS ?nameSearch)
+    FILTER (regex(?nameSearch, ?name, "i"))
 }
 ORDER BY ASC(?personGivenName)
 `;
@@ -273,24 +263,17 @@ ORDER BY ASC(?personGivenName)
             method: 'POST',
             body: sparqlQuery, // data can be `string` or {object}!
             headers:{
-                'Content-Type': 'application/sparql-query'
+                'Content-Type': 'application/sparql-query',
+                'Accept': 'application/sparql-results+json'
             }
         })
         .then(response => response.text())
         .then(parse)
         .catch(error => console.error('Error:', error));
 
-        function parse(results) {
-            let data = results.split('\n').map(result => result.split(','));
-            // Remove extra row
-            // TODO: find out where that row comes from.
-            data.pop();
-            let predicate = data.shift();
-            let matches = data.map(object => {
-                mp = {};
-                predicate.map((h,i) => mp[predicate[i]] = object[i]);
-                return mp;
-            });
+        function parse(data) {
+            let matches = JSON.parse(data).results.bindings;
+            console.log(matches)
             if (matches.length == 0) {
                 var score = document.getElementById("score");
                 score.style.display = "block";
@@ -344,26 +327,30 @@ Tweet about it!`;
 
                 // Insert MP name with API link
                 var mpLink = document.createElement("a");
-                mpLink.innerText = mp.personGivenName + " " + mp.personOtherNames + " " + mp.personFamilyName;
-                mpLink.href = mp.member;
+                mpLink.innerText = mp.personGivenName.value + " " + mp.personOtherNames.value + " " + mp.personFamilyName.value;
+                mpLink.href = mp.member.value;
                 var mpCell = row.insertCell();
                 mpCell.appendChild(mpLink);
                 if (mp.memberImage) {
+                    console.log(true)
                     var img = document.createElement("img");
-                    img.src = "https://api.parliament.uk/photo/" + mp.memberImage.substring('https://id.parliament.uk/'.length) + ".jpeg?crop=MCU_3:2&width=260&quality=80";
+                    img.src = "https://api.parliament.uk/photo/" + mp.memberImage.value.substring('https://id.parliament.uk/'.length) + ".jpeg?crop=MCU_3:2&width=260&quality=80";
                     mpCell.appendChild(img);
                 }
 
                 // Insert constituency group name
-                var constituencyLink = document.createElement("a");
-                constituencyLink.innerText = mp.constituencyName;
-                constituencyLink.href = mp.constituencyGroup;
-                row.insertCell().appendChild(constituencyLink);
+                var constituencyCell = row.insertCell();
+                if (mp.constituencyName) {
+                    var constituencyLink = document.createElement("a");
+                    constituencyLink.innerText = mp.constituencyName.value;
+                    constituencyLink.href = mp.constituencyGroup.value;
+                    constituencyCell.appendChild(constituencyLink);
+                }
 
                 // Insert MP house
                 var houseLink = document.createElement("a");
-                houseLink.innerText = mp.houseLabel;
-                houseLink.href = mp.house;
+                houseLink.innerText = mp.houseLabel.value;
+                houseLink.href = mp.house.value;
                 row.insertCell().appendChild(houseLink);
             }
         }
@@ -393,7 +380,7 @@ Tweet about it!`;
 
             function countPercent(house) {
                 return matches.reduce(function (accumulator, currentValue, currentIndex, array) {
-                    return currentValue.houseLabel == house ? accumulator + 1 : accumulator
+                    return currentValue.houseLabel.value == house ? accumulator + 1 : accumulator
                 }, 0);
             } 
         }
